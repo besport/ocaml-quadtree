@@ -160,3 +160,14 @@ let remove  tt (y,x) e =
   in
   let lat1,lat2,lon1,lon2 = tt.bound in
   tt.tree := loop lat1 lat2 lon1 lon2  !(tt.tree)
+
+
+let lmax = function
+  | [] -> assert false
+  | x::xs -> List.fold_left max x xs
+
+let depth tt =
+  let rec loop t = match t with
+    | C (_,_) -> 1
+    | N(t1,t2,t3,t4) -> 1+lmax (List.map loop [t1;t2;t3;t4])
+  in loop !(tt.tree)

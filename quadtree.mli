@@ -36,3 +36,5 @@ val insert : 'a t -> float * float -> 'a -> unit
 val insert_tailrec : 'a t -> float * float -> 'a -> unit
 
 val remove : 'a t -> float * float -> 'a -> unit
+
+val depth : 'a t -> int
