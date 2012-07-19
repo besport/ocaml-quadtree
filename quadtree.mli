@@ -25,7 +25,7 @@ type 'a t
 
 type rect = (float*float*float*float)
 
-val init : ?rect:rect -> int -> 'a t
+val init : ?rect:rect -> ?depth:int -> int -> 'a t
 
 val clear : 'a t -> unit
 

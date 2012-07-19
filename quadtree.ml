@@ -26,14 +26,16 @@ type 'a t = {
   tree:'a tree ref;
   bound:float*float*float*float;
   slice_size:int;
+  max_depth:int;
 }
 
 type rect = (float*float*float*float)
 
-let init ?(rect=(-90., 90.,-180.,180.)) slice_size = {
+let init ?(rect=(-90., 90.,-180.,180.)) ?(depth=15) slice_size = {
   tree=ref (C (0,[]));
   bound=rect;
   slice_size;
+  max_depth = depth;
 }
 
 let clear t =
@@ -78,8 +80,8 @@ let fold t (lat1',lat2',lon1',lon2') f acc =
 
 let insert tt (y,x) e =
   let cons l = ((y,x),e)::l in
-  let rec loop lat1 lat2 lon1 lon2  t = match t with
-    | C (size,l) when size < tt.slice_size -> C (size+1,cons l)
+  let rec loop lat1 lat2 lon1 lon2 t max = match t with
+    | C (size,l) when size < tt.slice_size || tt.max_depth > max -> C (size+1,cons l)
     | C (_,l) ->
 	let lon3 = (lon1+.lon2) /. 2. in
 	let lat3 = (lat1+.lat2) /. 2. in
@@ -92,22 +94,22 @@ let insert tt (y,x) e =
 	let t1,t2,t3,t4 =  (C (List.length l1,l1)), (C (List.length l2,l2)), (C (List.length l3,l3)), (C (List.length l4,l4)) in
 	begin
 	  match x<lon3,y<lat3 with
-	    | true,true -> N (loop lat1 lat3 lon1 lon3  t1,t2,t3,t4)
-	    | true,false -> N(t1,loop lat3 lat2 lon1 lon3  t2,t3,t4)
-	    | false,true -> N(t1, t2,loop lat1 lat3 lon3 lon2 t3,t4)
-	    | false,false -> N(t1,t2,t3,loop lat3 lat2 lon3 lon2 t4)
+	    | true,true -> N (loop lat1 lat3 lon1 lon3 t1 (succ max),t2,t3,t4)
+	    | true,false -> N(t1,loop lat3 lat2 lon1 lon3 t2 (succ max),t3,t4)
+	    | false,true -> N(t1, t2,loop lat1 lat3 lon3 lon2 t3 (succ max),t4)
+	    | false,false -> N(t1,t2,t3,loop lat3 lat2 lon3 lon2 t4 (succ max))
 	end
     | N(t1,t2,t3,t4) ->
 	let lon3 = (lon1+.lon2) /. 2. in
 	let lat3 = (lat1+.lat2) /. 2. in
 	match x<lon3,y<lat3 with
-	  | true,true -> N (loop lat1 lat3 lon1 lon3 t1,t2,t3,t4)
-	  | true,false -> N(t1,loop lat3 lat2 lon1 lon3 t2,t3,t4)
-	  | false,true -> N(t1, t2, loop lat1 lat3 lon3 lon2 t3,t4)
-	  | false,false -> N(t1,t2,t3,loop lat3 lat2 lon3 lon2 t4)
+	  | true,true -> N (loop lat1 lat3 lon1 lon3 t1 (succ max),t2,t3,t4)
+	  | true,false -> N(t1,loop lat3 lat2 lon1 lon3 t2 (succ max),t3,t4)
+	  | false,true -> N(t1, t2, loop lat1 lat3 lon3 lon2 t3 (succ max),t4)
+	  | false,false -> N(t1,t2,t3,loop lat3 lat2 lon3 lon2 t4 (succ max))
   in
   let lat1,lat2,lon1,lon2 = tt.bound in
-  tt.tree := loop lat1 lat2 lon1 lon2 !(tt.tree)
+  tt.tree := loop lat1 lat2 lon1 lon2 !(tt.tree) 0
 
 let remove  tt (y,x) e =
   let rec loop lat1 lat2 lon1 lon2 t = match t with
