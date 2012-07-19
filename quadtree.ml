@@ -81,7 +81,7 @@ let fold t (lat1',lat2',lon1',lon2') f acc =
 let insert tt (y,x) e =
   let cons l = ((y,x),e)::l in
   let rec loop lat1 lat2 lon1 lon2 t max = match t with
-    | C (size,l) when size < tt.slice_size || tt.max_depth > max -> C (size+1,cons l)
+    | C (size,l) when size < tt.slice_size || tt.max_depth < max -> C (size+1,cons l)
     | C (_,l) ->
 	let lon3 = (lon1+.lon2) /. 2. in
 	let lat3 = (lat1+.lat2) /. 2. in
@@ -114,7 +114,7 @@ let insert tt (y,x) e =
 let insert_tailrec tt (y,x) e =
   let cons l = ((y,x),e)::l in
   let rec loop lat1 lat2 lon1 lon2 t max k = match t with
-    | C (size,l) when size < tt.slice_size || tt.max_depth > max -> k (C (size+1,cons l))
+    | C (size,l) when size < tt.slice_size || tt.max_depth < max -> k (C (size+1,cons l))
     | C (_,l) ->
 	let lon3 = (lon1+.lon2) /. 2. in
 	let lat3 = (lat1+.lat2) /. 2. in
