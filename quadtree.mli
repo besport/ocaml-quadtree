@@ -33,4 +33,6 @@ val fold : 'a t -> rect -> ('b -> rect -> 'a -> 'b * instr) -> 'b -> 'b
 
 val insert : 'a t -> float * float -> 'a -> unit
 
+val insert_tailrec : 'a t -> float * float -> 'a -> unit
+
 val remove : 'a t -> float * float -> 'a -> unit

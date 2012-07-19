@@ -111,6 +111,40 @@ let insert tt (y,x) e =
   let lat1,lat2,lon1,lon2 = tt.bound in
   tt.tree := loop lat1 lat2 lon1 lon2 !(tt.tree) 0
 
+let insert_tailrec tt (y,x) e =
+  let cons l = ((y,x),e)::l in
+  let rec loop lat1 lat2 lon1 lon2 t max k = match t with
+    | C (size,l) when size < tt.slice_size || tt.max_depth > max -> k (C (size+1,cons l))
+    | C (_,l) ->
+	let lon3 = (lon1+.lon2) /. 2. in
+	let lat3 = (lat1+.lat2) /. 2. in
+	let l1,l2,l3,l4 = List.fold_left (fun (l1,l2,l3,l4) (((y,x),e) as elt) ->
+	  match x < lon3, y < lat3 with
+	    | true,true -> elt::l1,l2,l3,l4
+	    | true,false -> l1,elt::l2,l3,l4
+	    | false,true -> l1,l2,elt::l3,l4
+	    | false,false -> l1,l2,l3,elt::l4) ([],[],[],[]) l in
+	let t1,t2,t3,t4 =  (C (List.length l1,l1)), (C (List.length l2,l2)), (C (List.length l3,l3)), (C (List.length l4,l4)) in
+	begin
+	  match x<lon3,y<lat3 with
+	    | true,true -> loop lat1 lat3 lon1 lon3  t1 (succ max) (fun t -> k (N(t,t2,t3,t4)))
+	    | true,false -> loop lat3 lat2 lon1 lon3  t2 (succ max) (fun t -> k (N(t1,t,t3,t4)))
+	    | false,true -> loop lat1 lat3 lon3 lon2 t3 (succ max) (fun t -> k (N(t1, t2,t,t4)))
+	    | false,false -> loop lat3 lat2 lon3 lon2 t4 (succ max) (fun t -> k (N(t1,t2,t3,t)))
+	end
+    | N(t1,t2,t3,t4) ->
+	let lon3 = (lon1+.lon2) /. 2. in
+	let lat3 = (lat1+.lat2) /. 2. in
+	match x<lon3,y<lat3 with
+	  | true,true -> loop lat1 lat3 lon1 lon3  t1 (succ max) (fun t -> k (N(t,t2,t3,t4)))
+	  | true,false -> loop lat3 lat2 lon1 lon3  t2 (succ max) (fun t -> k (N(t1,t,t3,t4)))
+	  | false,true -> loop lat1 lat3 lon3 lon2 t3 (succ max) (fun t -> k (N(t1, t2,t,t4)))
+	  | false,false -> loop lat3 lat2 lon3 lon2 t4 (succ max) (fun t -> k (N(t1,t2,t3,t)))
+  in
+  let lat1,lat2,lon1,lon2 = tt.bound in
+  loop lat1 lat2 lon1 lon2 !(tt.tree) 0 (fun t -> tt.tree:=t)
+
+
 let remove  tt (y,x) e =
   let rec loop lat1 lat2 lon1 lon2 t = match t with
     | C (size,l) -> let rem,l = List.partition ((fun (_,e') -> e' = e )) l in
