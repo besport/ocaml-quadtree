@@ -41,26 +41,32 @@ let init ?(rect=(-90., 90.,-180.,180.)) ?(depth=15) slice_size = {
 let clear t =
   t.tree := C (0,[])
 
+let rec up limit = function
+  | [] -> []
+  | ((lat1,lat2,_,_),_)::nxt when lat2 -. lat1 <= limit -> up limit nxt
+  | nxt -> nxt
+
 let fold t (lat1',lat2',lon1',lon2') f acc =
   let inter (lat1,lat2,lon1,lon2) = lon2 < lon1' || lat2 < lat1' || lon2' < lon1  || lat2' < lat1 in
   let rec loop (lat1,lat2,lon1,lon2) acc nxt t =
-    let next acc = function
-      | [] -> acc
-      | (coord,t)::nxt -> loop coord acc nxt t in
-    let rec up limit acc = function
-      | [] -> acc
-      | ((lat1,lat2,_,_),_)::nxt when lat2 -. lat1 <= limit -> up limit acc nxt
-      | nxt -> next acc nxt in
     match t with
       | C (_, l) ->
 	  let rec aux acc = function
-	    | [] -> next acc nxt
+	    | [] ->
+		(match nxt with
+		  | [] -> acc,None
+		  | (coord,t)::nxt -> acc,Some(coord,nxt,t))
 	    | ((y,x),e)::xs ->
 		match if lon1' < x && x < lon2' && lat1' < y && y < lat2' then f acc (lat1,lat2,lon1,lon2) e else acc,Continue with
 		  | acc,Continue -> aux acc xs
-		  | acc,Not_deeper l -> up l acc nxt
-		  | acc,Stop -> acc in
-	  aux acc l
+		  | acc,Not_deeper limit ->
+		      (match up limit nxt with
+			| [] -> acc,None
+			| (coord,t)::nxt -> acc,Some (coord, nxt,t))
+		  | acc,Stop -> acc,None in
+	  (match aux acc l with
+	    | acc,None -> acc
+	    | acc,Some(coord,nxt,t) -> loop coord acc nxt t)
       | N(t1,t2,t3,t4) ->
 	  let lon3 = (lon1+.lon2) /. 2. in
 	  let lat3 = (lat1+.lat2) /. 2. in
@@ -73,7 +79,10 @@ let fold t (lat1',lat2',lon1',lon2') f acc =
 	    | true, false, f3, f4 -> loop sq2 acc (List.fold_left (fun acc (b,sq,t) -> if not b then (sq,t)::acc else acc) nxt [f3,sq3,t3;f4,sq4,t4]) t2
 	    | true, true, false, f4 -> loop sq3 acc (List.fold_left (fun acc (b,sq,t) -> if not b then (sq,t)::acc else acc) nxt [f4,sq4,t4]) t3
 	    | true, true, true, false -> loop sq4 acc nxt t4
-	    | true, true, true, true -> next acc nxt
+	    | true, true, true, true ->
+		match nxt with
+		  | [] -> acc
+		  | (coord,t)::nxt -> loop coord acc nxt t
   in
   let coord = t.bound in
   loop coord acc [] !(t.tree)
