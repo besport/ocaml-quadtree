@@ -1,13 +1,7 @@
 Ocaml-quadtree
 ==========
 
-Implementation of quad-tree.
-
-Ocaml-quadtree is part of the Be Sport codebased and is released under the LGPL.
-
-Copyright 2012 Be Sport, Inc - 580 Howard St San Francisco 94105 CA USA
-
-For more information, contact hackers@besport.com
+Moved into https://github.com/besport/ocaml-aliases 
 
 About Be Sport
 ==============
